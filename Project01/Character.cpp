@@ -90,7 +90,7 @@ void AMyCharacter::AttackHitCheck()
 	float HalfHeight = AttackRange * 0.5f + AttackRadius;
 
 	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
-	FQuat DrawColor = bResult ? FColor::Green : FColor::Red;
+	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
 
 	float DebugLifeTime = 5.0f;
 
@@ -114,6 +114,12 @@ void AMyCharacter::AttackHitCheck()
 		if (HitResult.GetActor())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitResult.GetActor()->GetName());
+
+			FVector Dir = HitResult.GetActor()->GetActorLocation() - GetActorLocation();
+
+			FQuat LookAtRot = FRotationMatrix::MakeFromX(Dir).ToQuat();
+
+			SetActorRotation(LookAtRot);
 		}
 	}
 }
