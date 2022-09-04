@@ -8,12 +8,15 @@ UMyAnimInstance::UMyAnimInstance()
 	CurrentPawnSpeed = 0.0f;
 	IsInAir = false;
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> ATTACK_MONTAGE(TEXT("/Game/Blueprints/KwangAttackMontage.KwangAttackMontage"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ATTACK_MONTAGE(
+		TEXT("/Game/Blueprints/AttackMontage.AttackMontage"));
+	
 	if (ATTACK_MONTAGE.Succeeded())
 	{
 		AttackMontage = ATTACK_MONTAGE.Object;
 	}
 
+	
 }
 
 void UMyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -36,12 +39,16 @@ void UMyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 }
 
 void UMyAnimInstance::PlayAttackMontage()
-{
+{	
 	Montage_Play(AttackMontage, 1.0f);
 }
 
 void UMyAnimInstance::AnimNotify_AttackHitCheck()
 {
 	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("AnimNotify_AttackHitCheck"));
+		GEngine->AddOnScreenDebugMessage(
+			-1, 15.0f, FColor::Yellow, TEXT("AnimNotify_AttackHitCheck"));
+
+	OnAttackHitCheck.Broadcast();
+
 }
