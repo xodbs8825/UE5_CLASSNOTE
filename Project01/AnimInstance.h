@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "MyAnimInstance.generated.h"
 
+
 DECLARE_MULTICAST_DELEGATE(FOnAttackHitCheckDelegate);
 
 /**
@@ -22,6 +23,11 @@ public:
 
 	void PlayAttackMontage();
 
+	void SetAnimDeath() 
+	{ 
+		bDeadAnim = true;
+	}
+
 	UFUNCTION()
 	void AnimNotify_AttackHitCheck();
 
@@ -34,6 +40,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	bool IsInAir;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* AttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	bool bDeadAnim;
 };
