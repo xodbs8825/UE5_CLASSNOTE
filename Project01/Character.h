@@ -21,6 +21,8 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	UCameraComponent* Camera;
 
+	UPROPERTY(VisibleAnywhere, Category = Stat)
+	class UCharacterStatComponent* CharacterStat;
 
 	void MoveForward(float NewAxisValue);
 
@@ -30,20 +32,23 @@ public:
 
 	void LookUp(float NewAxisValue);
 
+
 	void Attack();
+
 
 	void AttackHitCheck();
 
+	void OnHPIsZero();
+
 	UFUNCTION()
-	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInerrupted);
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 
 	virtual void PostInitializeComponents() override;
 
-private:
-	bool IsAttacking = false;
 
-	UPROPERTY()
-	class UMyAnimInstance* MyAnim;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+		class AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 	// Called when the game starts or when spawned
@@ -55,5 +60,10 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+private:
+
+	UPROPERTY()
+	class UMyAnimInstance* MyAnim;
 
 };
