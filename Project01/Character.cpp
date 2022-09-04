@@ -3,6 +3,7 @@
 
 #include "MyCharacter.h"
 #include "MyAnimInstance.h"
+#include "CharacterStatComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter()
@@ -31,18 +32,28 @@ AMyCharacter::AMyCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
 
-
+	CharacterStat = CreateDefaultSubobject<UCharacterStatComponent>(TEXT("CHARACTERSTAT"));
 }
 
 void AMyCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	// 애님인스턴스의 PlayAttackMontage
+	
 	MyAnim = Cast<UMyAnimInstance>(GetMesh()->GetAnimInstance());
 	if (MyAnim)
 	{
 		MyAnim->OnAttackHitCheck.AddUObject(this, &AMyCharacter::AttackHitCheck);
+	}
+
+	if (CharacterStat)
+	{
+		CharacterStat->OnHPIsZero.AddUObject(this, &AMyCharacter::OnHPIsZero);
+		//CharacterStat->OnHPIsZero.AddLambda([this]()->void
+		//	{
+		//		MyAnim->SetAnimDeath();
+		//		SetActorEnableCollision(false);
+		//	});
 	}
 }
 
@@ -52,62 +63,64 @@ void AMyCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	
+	
 	//MyAnim->OnMontageEnded.AddDynamic(this, &AMyCharacter::OnAttackMontageEnded);
 }
 
-void AMyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInerrupted)
+void AMyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("AMyCharacter::OnAttackMontageEnded"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow,
+			TEXT("AMyCharacter::OnAttackMontageEnded"));
+}
+
+void AMyCharacter::OnHPIsZero()
+{
+	MyAnim->SetAnimDeath();
+	SetActorEnableCollision(false);
 }
 
 void AMyCharacter::AttackHitCheck()
 {
 	float AttackRange = 200.0f;
-	float AttackRadius = 50.0f;
-
+	float AttackRaduis = 50.0f;
 	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("AMyCharacter::AttackHitCheck"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, 
+			TEXT("AMyCharacter::AttackHitCheck"));
 
+	//ECC_GameTraceChannel1
 	FHitResult HitResult;
 	FCollisionQueryParams Params(NAME_None, false, this);
-
-	bool bResult = GetWorld()->SweepSingleByChannel
-	(
+	bool bResult = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		GetActorLocation(),
-		GetActorLocation() + (GetActorForwardVector() * AttackRange),
+		GetActorLocation() + GetActorForwardVector() * AttackRange,
 		FQuat::Identity,
 		ECollisionChannel::ECC_GameTraceChannel1,
-		FCollisionShape::MakeSphere(AttackRadius),
-		Params
-	);
+		FCollisionShape::MakeSphere(AttackRaduis),
+		Params);
 
 #if ENABLE_DRAW_DEBUG
-	FVector TraceVec = GetActorForwardVector() * AttackRange;
-	FVector Center = GetActorLocation() + (TraceVec * 0.5f);
 
-	float HalfHeight = AttackRange * 0.5f + AttackRadius;
+	FVector TraceVec = GetActorForwardVector() * AttackRange;
+	FVector Center = GetActorLocation() + TraceVec * 0.5f;
+	float HalfHeight = AttackRange * 0.5f + AttackRaduis;
 
 	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
 	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
 
 	float DebugLifeTime = 5.0f;
-
-	DrawDebugCapsule
-	(
+	DrawDebugCapsule(
 		GetWorld(),
 		Center,
 		HalfHeight,
-		AttackRadius,
+		AttackRaduis,
 		CapsuleRot,
 		DrawColor,
 		false,
 		DebugLifeTime
 	);
-
 #endif
-
 
 	if (bResult)
 	{
@@ -115,14 +128,30 @@ void AMyCharacter::AttackHitCheck()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitResult.GetActor()->GetName());
 
-			FVector Dir = HitResult.GetActor()->GetActorLocation() - GetActorLocation();
-
-			FQuat LookAtRot = FRotationMatrix::MakeFromX(Dir).ToQuat();
-
-			SetActorRotation(LookAtRot);
+			FDamageEvent DamageEvent;
+			HitResult.GetActor()->TakeDamage(CharacterStat->GetAttack(), DamageEvent, GetController(), this);
+			//FVector Dir = HitResult.GetActor()->GetActorLocation() - GetActorLocation();
+			//FQuat LookAtRot = FRotationMatrix::MakeFromX(Dir).ToQuat();
+			//SetActorRotation(LookAtRot);
 		}
 	}
 }
+
+
+float AMyCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+	class AController* EventInstigator, AActor* DamageCauser)
+{
+	float FinalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	UE_LOG(LogTemp, Warning, TEXT("Actor : %s took Damage : %f"), *GetName(), FinalDamage);
+
+	if (MyAnim)
+	{
+		CharacterStat->SetDamage(FinalDamage);
+	}
+
+	return FinalDamage;
+}
+
 
 // Called every frame
 void AMyCharacter::Tick(float DeltaTime)
@@ -186,10 +215,10 @@ void AMyCharacter::LookUp(float NewAxisValue)
 
 void AMyCharacter::Attack()
 {
-	if (MyAnim)
-	{
-		MyAnim->PlayAttackMontage();
-		IsAttacking = true;
-	}
-}
+	// 애님인스턴스의 PlayAttackMontage
+	MyAnim->PlayAttackMontage();
 
+
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Attack"));
+}
