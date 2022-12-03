@@ -96,3 +96,51 @@ FName UMyAnimInstance::GetAttackMontageSectionName(int32 Section)
     return FName(*FString::Printf(TEXT("Attack%d"), Section));
 }
 ```
+# MyCharacter.cpp
+```
+...
+void AMyCharacter::PostInitializeComponents()
+{
+    ...
+    AnimInstance->OnNextAttackCheck.AddLambda([this]() -> void {
+        ABLOG(Warning, TEXT("OnNextAttackCheck");
+        CanNextCombo = false;
+        
+        is (IsComboInputOn)
+        {
+            AttackStartComboState();
+            AnimInstance->JumpToAttackMontageSection(CurrentCombo);
+        }
+    });
+}
+
+...
+void AMyCharacter::Attack()
+{
+    if (IsAttacking)
+    {
+        ABCHECK(FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo);
+        if (CanNextCombo)
+        {
+            IsComboInputOn = true;
+        }
+    }
+    else
+    {
+        ABCHECK(CurrentCombo == 0);
+        AttackStartComboState();
+        AnimInstance->PlayAttackMontage();
+        AnimInstance->JumpToAttackMontageSection(CurrentCombo);
+        IsAttacking = true;
+    }
+}
+
+void AMyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    ABCHECK(IsAttacking);
+    ABCHECK(CurrentCombo > 0);
+    IsAttacking = false;
+    AttackEndComboState();
+}
+...
+```
