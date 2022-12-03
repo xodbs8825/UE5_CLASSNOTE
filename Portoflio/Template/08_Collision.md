@@ -93,3 +93,39 @@ void AMyCharacter::AttackCheck()
     }
 }
 ```
+
+# 데미지 프레임워크
+### MyCharacter.cpp
+```
+...
+
+void AMyCharacter::AttackCheck()
+{
+    ...
+    if (bResult)
+    {
+        if (HitResult.GetActor())
+        {
+            ABLOG(Warning, TEXT("Hit Actor Name : %s"), *HitResult.Actor->GetName());
+            
+            FDamageEvent DamageEvent;
+			HitResult.GetActor()->TakeDamage(50.0f, DamageEvent, GetController(),this);
+        }
+    }
+}
+```
+### MyCharacter.h
+```
+public:
+    ...
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+```
+### MyCharacter.cpp
+```
+float AMyCharacter::TakeDamage(float DamageAmount, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
+{
+	float FinalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	ABLOG(Warning, TEXT("Actor : %s took Damage : %f"), *GetName(), FinalDamage);
+	return FinalDamage;
+}
+```
