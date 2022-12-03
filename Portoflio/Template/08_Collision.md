@@ -2,4 +2,52 @@
 ![184578133-d76bf5a7-4657-4794-88ca-40227db4acab](https://user-images.githubusercontent.com/97510008/205431656-c3705e59-f778-42fd-86b1-6e43825ded99.png)
 ![184578151-fe049c78-84e7-4289-99e4-4bc4143b33f8](https://user-images.githubusercontent.com/97510008/205431660-51fda455-3e65-4f78-9f6e-b65502b63aac.png)
 
-# MyCharacter.h
+### DefaultEngine.ini
+![182603137-a6a790a0-767a-4328-b86c-1b27f82ecdf0](https://user-images.githubusercontent.com/97510008/205432013-f005a072-5fae-41a7-bc58-e63a4c7caa27.png)
+```
+[/Script/Engine.CollisionProfile]
+...
++DefaultChannelResponses=(Channel=ECC_GameTraceChannel1,Name="Attack",DefaultResponse=ECR_Ignore,bTraceType=True,bStaticObject=False)
+...
+```
+Attack 의 트레이스 채널이 ECC_GameTraceChannel1 열거형 값을 사용하는 것 확인
+
+### MyCharacter.h
+```
+...
+private:
+  void AttackCheck();
+```
+### MyCharacter.cpp
+```
+void AMyCharacter::PostInitializeComponents()
+{
+  ...
+  AnimInstance->OnAttackHitCheck.AddUObject(this, &AMyCharacter::AttackCheck);
+}
+...
+void AMyCharacter::AttackCheck()
+{
+    float AttackRange = 200.0f;
+    float AttackRadius = 50.0f;
+    
+	FHitResult HitResult;
+	FCollisionQueryParams Params(NAME_None, false, this);
+	bool bResult = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		GetActorLocation(),
+		GetActorLocation() + GetActorForwardVector() * AttackRange ,
+		FQuat::Identity,
+		ECollisionChannel::ECC_GameTraceChannel1,
+		FCollisionShape::MakeSphere(AttackRadius),
+		Params);
+        
+    if (bResult)
+    {
+        if (HitResult.GetActor())
+        {
+            ABLOG(Warning, TEXT("Hit Actor Name : %s"), *HitResult.Actor->GetName());
+        }
+    }
+}
+```
