@@ -16,22 +16,40 @@ Attack 의 트레이스 채널이 ECC_GameTraceChannel1 열거형 값을 사용�
 ```
 ...
 private:
-  void AttackCheck();
+    void AttackCheck();
+  
+private:
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+    float AttackRange;
+    
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+    float AttackRadius;
 ```
 ### MyCharacter.cpp
 ```
+...
+#include "DrawDebugHelpers.h"
+
+AMyCharacter::AMyCharacter()
+{
+    ...
+    AttackRange = 200.0f;
+    AttaclRadius = 50.0f;
+}
+
+...
+
 void AMyCharacter::PostInitializeComponents()
 {
-  ...
-  AnimInstance->OnAttackHitCheck.AddUObject(this, &AMyCharacter::AttackCheck);
+    ...
+    AnimInstance->OnAttackHitCheck.AddUObject(this, &AMyCharacter::AttackCheck);
 }
+
 ...
+
 void AMyCharacter::AttackCheck()
 {
-    float AttackRange = 200.0f;
-    float AttackRadius = 50.0f;
-    
-	FHitResult HitResult;
+    FHitResult HitResult;
 	FCollisionQueryParams Params(NAME_None, false, this);
 	bool bResult = GetWorld()->SweepSingleByChannel(
 		HitResult,
@@ -41,6 +59,29 @@ void AMyCharacter::AttackCheck()
 		ECollisionChannel::ECC_GameTraceChannel1,
 		FCollisionShape::MakeSphere(AttackRadius),
 		Params);
+
+#if ENABLE_DRAW_DEBUG
+
+    FVector TraceVec = GetActorForwardVector() * AttackRange;
+	FVector Center = GetActorLocation() + TraceVec * 0.5f;
+	float HalfHeight = AttackRange * 0.5f + AttackRadius;
+    
+    //Capsule 의 Z (Up)를 TraceVec 방향으로 회전 
+	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
+	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
+    
+    float DebugLifeTime = 5.0f;
+    
+    DrawDebugCapsule(GetWorld(),
+		Center,
+		HalfHeight,
+		AttackRadius,
+		CapsuleRot,
+		DrawColor,
+		false,
+		DebugLifeTime);
+
+#endif
         
     if (bResult)
     {
